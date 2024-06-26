@@ -7,11 +7,12 @@ from collections import namedtuple as struct
 import swisseph as swe
 import os
 import svgwrite
+from datetime import datetime, timedelta
 
 load_dotenv()
 app = Flask(__name__)
-CORS(app)
-#CORS(app, origins=["http://example.com", "https://another-example.com"]) to add custom cros
+CORS(app,origins=["http://localhost:3000","https://vedicastro108.com"])
+#CORS(app, origins=["", "https://another-example.com"]) to add custom cros
 Date = struct('Date', ['year', 'month', 'day'])
 Place = struct('Place', ['latitude', 'longitude', 'timezone'])
 
@@ -269,6 +270,7 @@ def nakshatra(jd, place):
 
   offsets = [0.0, 0.25, 0.5, 0.75, 1.0]
   longitudes = [ lunar_longitude(rise + t) for t in offsets]
+  
 
   # 2. Today's nakshatra is when offset = 0
   # There are 27 Nakshatras spanning 360 degrees
@@ -1102,38 +1104,7 @@ def tithiname(jd, place):
 
     return thithi_number, thithi_name, thithi_end_time, tag
 
-def snakshatra_pada(jd, place):
-   
 
- 
-    """Current nakshatra as of julian day (jd) along with its pada
-       1 = Asvini, 2 = Bharani, ..., 27 = Revati
-       1 pada = 3°20'
-    """
-   
-    lat, lon, tz = place
-    rise = sunrise(jd, place)[0] - tz / 24.  # Sunrise at UT 00:00
-
-    offsets = [0.0, 0.25, 0.5, 0.75, 1.0]
-    longitudes = [lunar_longitude(rise + t) for t in offsets]
-
-    nak = ceil(longitudes[0] * 27 / 360)
-    answer = []
-
-    for i in range(4):
-        y = unwrap_angles(longitudes)
-        x = offsets
-        approx_end = inverse_lagrange(x, y, (nak - 1) * 360 / 27 + i * 360 / 108)
-        ends = (rise - jd + approx_end) * 24 + tz
-        ends_hours = int(ends)
-        ends_minutes = int((ends - ends_hours) * 60)
-        am_pm = "AM" if ends_hours < 12 else "PM"
-        ends_hours %= 12
-        if ends_hours == 0:
-            ends_hours = 12
-        answer.append((int(nak), i + 1, f"{ends_hours:02d}:{ends_minutes:02d} {am_pm}"))
-
-    return answer
 
 def snakshatra(jd, place):
     """Current nakshatra as of julian day (jd)
@@ -1180,6 +1151,11 @@ def snakshatra(jd, place):
     nak_name = nakshatra_name
     nak_end_time = nakshatra_end_time
     nak_tag = tag
+    if nak_tag =="today":
+           next_naksh= nakshatra_names(int(nak_number +1 ))
+           next_nakshatra =next_naksh +" "+"Afterwards"
+    else:
+       next_nakshatra=" "
 
  
     # Check for skipped nakshatra
@@ -1215,8 +1191,13 @@ def snakshatra(jd, place):
         nak_name = leap_nakshatra_name
         nak_end_time = leap_nakshatra_end_time
         nak_tag = leap_tag
+    print(nak_tag)    
+    
+              
+                                 
+           
 
-    return nak_number, nak_name, nak_end_time, nak_tag
+    return nak_number, nak_name, nak_end_time, nak_tag,next_nakshatra
 
 def nakshatra_names(nak_number):
     nakshatra_names = {
@@ -1410,6 +1391,7 @@ def syoga(jd, place):
 
     approx_end = inverse_lagrange(offsets, total_motion, degrees_left)
     ends = (rise + approx_end - jd) * 24 + tz
+    
 
     answer = [yoga_names.get(yog, "Unknown")]
 
@@ -1428,7 +1410,12 @@ def syoga(jd, place):
         hours = 12
 
     answer += [f"{hours:02d}:{minutes:02d} {am_pm} {tag}"]
+    if tag=="today":
+          next_yog=yoga_names.get(yog +1, "Unknown")
+          next_yoga=next_yog +" "+ "Afterwards"
 
+    else:
+       next_yoga=" "
     # Check for skipped yoga
     lunar_long_tmrw = lunar_longitude(rise + 1)
     solar_long_tmrw = solar_longitude(rise + 1)
@@ -1458,14 +1445,14 @@ def syoga(jd, place):
 
         answer += [yoga_names.get(leap_yog, "Unknown"), f"{hours:02d}:{minutes:02d} {am_pm} {tag}"]
   
-
+    
     if len(answer) == 2:
         answer += [" ", " "]
     yoga1, yoga1time, yoga2, yoga2time = answer[0], answer[1], answer[2], answer[3]
 
 
     print( yoga1, yoga1time, yoga2, yoga2time,"ypga time")
-    return yoga1, yoga1time, yoga2, yoga2time    
+    return yoga1, yoga1time, yoga2, yoga2time,next_yoga
     # return ans
 
 
@@ -1806,276 +1793,498 @@ def ritu1(jd,place):
   # return [int(maasa),maasa_name,rituname,vedic_ritu]
   return rituname
 #sunrise chart preperation
-def sunrise_ascendent(jd, place):
-  """Sunrise when centre of disc is at horizon for given date and place"""
-  assendent=[]
-  lat, lon, tz = place
-  result = swe.rise_trans(jd - tz/24, swe.SUN, lon, lat, rsmi = _rise_flags + swe.CALC_RISE)
-  
-  rise = result[1][0]  # julian-day number
-  set_ayanamsa_mode() # needed for swe.houses_ex()
-  # returns two arrays, cusps and ascmc, where ascmc[0] = Ascendant
-  nirayana_lagna = swe.houses_ex(rise, lat, lon, flag = swe.FLG_SIDEREAL)[1][0]
-#   print(nirayana_lagna)
-  # 12 zodiac signs span 360°, so each one takes 30°
-  # 0 = Mesha, 1 = Vrishabha, ..., 11 = Meena
-  constellation = int(nirayana_lagna / 30)
-#   print([rise + tz/24., to_dms((rise - jd) * 24 + tz)])
-#   print(rise,"nee to chech the utc timing" )
-#adding +1 because it count 0 to 11 in contellation
-  # assendent.append(11)
-  assendent.append([11,constellation+1])
 
- 
-  
-  
-  positions = []
-  jd_ut=rise
-  #print(planet_list)
-  for planet in planet_list:
-    
-    #print(planet,"====")
-    if planet != swe.KETU:
-      #print(planet)
-      nirayana_long = sidereal_longitude(jd_ut, planet)
-    else: # Ketu
-      nirayana_long = ketu(sidereal_longitude(jd_ut, swe._RAHU))
+import svgwrite
 
-    # 12 zodiac signs span 360°, so each one takes 30°
-    # 0 = Mesha, 1 = Vrishabha, ..., 11 = Meena ,,need to add +1 to all the 
-    constellation = int(nirayana_long / 30)
-    #print(constellation)
-    coordinates = to_dms(nirayana_long % 30)
-    #print(coordinates)
-  
-    assendent.append([planet,constellation+1])
-    print(assendent)
-  
-  mapping = {
-    0: "Su",
-    1: "Mo",
-    4: "Ma",
-    2: "Me",
-    5: "Ju",
-    3: "Ve",
-    6: "Sa",
-    10: "Ra",
-    9: "Ke",
-    11: "Asc",
-    7:"",
-    8:""
-}
+def generate_responsive_svg(values):
+    # Create a drawing object with width and height set to 100% for responsiveness
+    dwg = svgwrite.Drawing(size=("100%", "100%"), profile='full')
 
-  #assendent = [[11, 1], [0, 1], [1, 9], [4, 12], [2, 12], [5, 1], [3, 1], [6, 11], [10, 12], [9, 6]]
+    # Set viewBox and preserveAspectRatio to make SVG scalable
+    dwg.viewbox(0, 0, 350, 350)
+    dwg.attribs['preserveAspectRatio'] = 'xMidYMid meet'
 
-  for inner_list in assendent:
-      if inner_list[0] in mapping:
-          inner_list[0] = mapping[inner_list[0]]
-          
-  data=assendent
-  values = {
-      "planet1": "",
-      "planet2": "",
-      "planet3": "",
-      "planet4": "",
-      "planet5": "",
-      "planet6": "",
-      "planet7": "",
-      "planet8": "",
-      "planet9": "",
-      "planet10": "",
-      "planet11": "",
-      "planet12": "",
-  }
+   
 
-  for item in data:
-      planet_number = item[1]
-      planet_key = "planet" + str(planet_number)
-      if planet_key in values:
-          if values[planet_key]:
-              values[planet_key] += "," + str(item[0])
-          else:
-              values[planet_key] = str(item[0])
+    # Create a rectangle
+    dwg.add(dwg.rect(insert=(0, 0), size=(350, 350), fill="#ffcb77", stroke="#E72929", stroke_width=4))
 
-  print(values)
-
-  dwg = svgwrite.Drawing(size=(350, 350))
-
-  # Create a rectangle
-  dwg.add(dwg.rect(insert=(0, 0), size=(350, 350), fill="#FFFEC9", stroke="#FFC000", stroke_width=4))
-
-  # Add lines
-  dwg.add(dwg.line(start=(0, 0), end=(350, 350), stroke="#FFC000", stroke_width=2))
-  dwg.add(dwg.line(start=(350, 0), end=(0, 350), stroke="#FFC000", stroke_width=2))
-  dwg.add(dwg.line(start=(0, 175), end=(175, 0), stroke="#FFC000", stroke_width=2))
-  dwg.add(dwg.line(start=(175, 350), end=(350, 175), stroke="#FFC000", stroke_width=2))
-  dwg.add(dwg.line(start=(175, 0), end=(350, 175), stroke="#FFC000", stroke_width=2))
-  dwg.add(dwg.line(start=(0, 175), end=(175, 350), stroke="#FFC000", stroke_width=2))
+    # Add lines
+    dwg.add(dwg.line(start=(0, 0), end=(350, 350), stroke="#E72929", stroke_width=2))
+    dwg.add(dwg.line(start=(350, 0), end=(0, 350), stroke="#E72929", stroke_width=2))
+    dwg.add(dwg.line(start=(0, 175), end=(175, 0), stroke="#E72929", stroke_width=2))
+    dwg.add(dwg.line(start=(175, 350), end=(350, 175), stroke="#E72929", stroke_width=2))
+    dwg.add(dwg.line(start=(175, 0), end=(350, 175), stroke="#E72929", stroke_width=2))
+    dwg.add(dwg.line(start=(0, 175), end=(175, 350), stroke="#E72929", stroke_width=2))
 
     # Add text elements
-  text_elements = [
-      ("1", (173, 165)),
-      (values.get("planet1", ""), (173, 87.5)),
-      ("2", (86.5, 78.5)),
-      (values.get("planet2", ""), (85.5, 31.818181818182)),
-      ("3", (69.5, 93.5)),
-      (values.get("planet3", ""), (31.818181818182, 93.5)),
-      ("4", (157, 181)),
-      (values.get("planet4", ""), (85.5, 175)),
-      ("5", (69.5, 268.5)),
-      (values.get("planet5", ""), (31.818181818182, 268.5)),
-      ("6", (86.5, 282.5)),
-      (values.get("planet6", ""), (85.5, 338)),
-      ("7", (175, 197)),
-      (values.get("planet7", ""), (175, 268.5)),
-      ("8", (260.5, 282.5)),
-      (values.get("planet8", ""), (262.5, 338)),
-      ("9", (278.5, 268.5)),
-      (values.get("planet9", ""), (318.18181818182, 268.5)),
-      ("10", (190, 181)),
-      (values.get("planet10", ""), (262.5, 175)),
-      ("11", (276.5, 93.5)),
-      (values.get("planet11", ""), (318.18181818182, 93.5)),
-      ("12", (260.5, 78.5)),
-      (values.get("planet12", ""), (262.5, 31.818181818182))
-  ]
+    text_elements = [
+        ("1", (173, 165)),
+        (values.get("planet1", ""), (173, 87.5)),
+        ("2", (86.5, 78.5)),
+        (values.get("planet2", ""), (85.5, 31.818181818182)),
+        ("3", (69.5, 93.5)),
+        (values.get("planet3", ""), (31.818181818182, 93.5)),
+        ("4", (157, 181)),
+        (values.get("planet4", ""), (85.5, 175)),
+        ("5", (69.5, 268.5)),
+        (values.get("planet5", ""), (31.818181818182, 268.5)),
+        ("6", (86.5, 282.5)),
+        (values.get("planet6", ""), (85.5, 338)),
+        ("7", (175, 197)),
+        (values.get("planet7", ""), (175, 268.5)),
+        ("8", (260.5, 282.5)),
+        (values.get("planet8", ""), (262.5, 338)),
+        ("9", (278.5, 268.5)),
+        (values.get("planet9", ""), (318.18181818182, 268.5)),
+        ("10", (190, 181)),
+        (values.get("planet10", ""), (262.5, 175)),
+        ("11", (276.5, 93.5)),
+        (values.get("planet11", ""), (318.18181818182, 93.5)),
+        ("12", (260.5, 78.5)),
+        (values.get("planet12", ""), (262.5, 31.818181818182))
+    ]
 
-  for text, position in text_elements:
-      dwg.add(dwg.text(text, insert=position, font_size=15, fill="red", stroke="none", text_anchor="middle"))
-  return dwg.tostring()
-# def sunrise_ascendent(jd, place):
-#   """Sunrise when centre of disc is at horizon for given date and place"""
-#   assendent=[]
-#   lat, lon, tz = place
-#   result = swe.rise_trans(jd - tz/24, swe.SUN, lon, lat, rsmi = _rise_flags + swe.CALC_RISE)
-  
-#   rise = result[1][0]  # julian-day number
-#   set_ayanamsa_mode() # needed for swe.houses_ex()
-#   # returns two arrays, cusps and ascmc, where ascmc[0] = Ascendant
-#   nirayana_lagna = swe.houses_ex(rise, lat, lon, flag = swe.FLG_SIDEREAL)[1][0]
-# #   print(nirayana_lagna)
-#   # 12 zodiac signs span 360°, so each one takes 30°
-#   # 0 = Mesha, 1 = Vrishabha, ..., 11 = Meena
-#   constellation = int(nirayana_lagna / 30)
-# #   print([rise + tz/24., to_dms((rise - jd) * 24 + tz)])
-# #   print(rise,"nee to chech the utc timing" )
-# #adding +1 because it count 0 to 11 in contellation
-#   # assendent.append(11)
-#   assendent.append([11,constellation+1])
-  
-  
-#   positions = []
-#   jd_ut=rise
-#   #print(planet_list)
-#   for planet in planet_list:
+   
+
+    numbers_set = {str(i) for i in range(1, 13)}
+
+    for text, position in text_elements:
+        if text in numbers_set:
+            color = "#A0153E"  # Color for numbers (1-12)
+        else:
+            color = "#4C3BCF"  # Color for dynamic text
+        
+        if ',' in text:
+            # Split the text into lines after every two commas
+            parts = text.split(',')
+            lines = []
+            for i in range(0, len(parts), 2):
+                line = ','.join(parts[i:i+2])
+                lines.append(line)
+            for i, line in enumerate(lines):
+                dy = i * 15  # Adjust the vertical spacing between lines
+                dwg.add(dwg.text(line, insert=(position[0], position[1] + dy), font_size=15, fill=color, stroke="none", text_anchor="middle"))
+        else:
+            dwg.add(dwg.text(text, insert=position, font_size=15, fill=color, stroke="none", text_anchor="middle"))
+
+    return dwg.tostring()
+
+def sunrise_ascendent(jd, place):
+    """Sunrise when centre of disc is at horizon for given date and place"""
+    assendent=[]
+    lat, lon, tz = place
+    result = swe.rise_trans(jd - tz/24, swe.SUN, lon, lat, rsmi = _rise_flags + swe.CALC_RISE)
     
-#     #print(planet,"====")
-#     if planet != swe.KETU:
-#       #print(planet)
-#       nirayana_long = sidereal_longitude(jd_ut, planet)
-#     else: # Ketu
-#       nirayana_long = ketu(sidereal_longitude(jd_ut, swe._RAHU))
+    rise = result[1][0]  # julian-day number
+    set_ayanamsa_mode() # needed for swe.houses_ex()
+    # returns two arrays, cusps and ascmc, where ascmc[0] = Ascendant
+    nirayana_lagna = swe.houses_ex(rise, lat, lon, flag = swe.FLG_SIDEREAL)[1][0]
+    # 12 zodiac signs span 360°, so each one takes 30°
+    # 0 = Mesha, 1 = Vrishabha, ..., 11 = Meena
+    constellation = int(nirayana_lagna / 30)
+    assendent.append([11,constellation+1])
 
-#     # 12 zodiac signs span 360°, so each one takes 30°
-#     # 0 = Mesha, 1 = Vrishabha, ..., 11 = Meena ,,need to add +1 to all the 
-#     constellation = int(nirayana_long / 30)
-#     #print(constellation)
-#     coordinates = to_dms(nirayana_long % 30)
-#     #print(coordinates)
+    positions = []
+    jd_ut=rise
+
+    for planet in planet_list:
+        if planet != swe.KETU:
+            nirayana_long = sidereal_longitude(jd_ut, planet)
+        else: # Ketu
+            nirayana_long = ketu(sidereal_longitude(jd_ut, swe._RAHU))
+
+        # 12 zodiac signs span 360°, so each one takes 30°
+        # 0 = Mesha, 1 = Vrishabha, ..., 11 = Meena
+        constellation = int(nirayana_long / 30)
+        coordinates = to_dms(nirayana_long % 30)
+        assendent.append([planet,constellation+1])
+        print(assendent)
+
+    mapping = {
+        0: "Su",
+        1: "Mo",
+        4: "Ma",
+        2: "Me",
+        5: "Ju",
+        3: "Ve",
+        6: "Sa",
+        10: "Ra",
+        9: "Ke",
+        11: "Asc",
+        7:"",
+        8:""
+    }
+
+    for inner_list in assendent:
+        if inner_list[0] in mapping:
+            inner_list[0] = mapping[inner_list[0]]
+
+    data = assendent
+    values = {
+        "planet1": "",
+        "planet2": "",
+        "planet3": "",
+        "planet4": "",
+        "planet5": "",
+        "planet6": "",
+        "planet7": "",
+        "planet8": "",
+        "planet9": "",
+        "planet10": "",
+        "planet11": "",
+        "planet12": "",
+    }
+
+    for item in data:
+        planet_number = item[1]
+        planet_key = "planet" + str(planet_number)
+        if planet_key in values:
+            if values[planet_key]:
+                values[planet_key] += "," + str(item[0])
+            else:
+                values[planet_key] = str(item[0])
+
+    print(values)
+    return generate_responsive_svg(values)
+
+masas = {
+    "1": "Caitra",
+    "2": "Vaisakha",
+    "3": "Jyestha",
+    "4": "Asadha",
+    "5": "Sravana",
+    "6": "Bhadrapada",
+    "7": "Asvina",
+    "8": "Kartika",
+    "9": "Margasirsa",
+    "10": "Pusya",
+    "11": "Magha",
+    "12": "Phalguna"
+}
+
+def masaname(jd, place):
+    """Returns lunar month number, name, and if it is adhika (leap month) or not.
+       1 = Caitra, 2 = Vaiśākha, ..., 12 = Phālguṇa"""
+    ti = tithi(jd, place)[0]
+    critical = sunrise(jd, place)[0]  # - tz/24 ?
+    last_new_moon = new_moon(critical, ti, -1)
+    next_new_moon = new_moon(critical, ti, +1)
+    this_solar_month = raasi(last_new_moon)
+    next_solar_month = raasi(next_new_moon)
+    is_leap_month = (this_solar_month == next_solar_month)
+    maasa = this_solar_month + 1
+    if maasa > 12:
+        maasa = (maasa % 12)
+    masa_name = masas[str(maasa)]
+    return int(maasa), masa_name, is_leap_month
+pada_names={
+    1: "Asvini pada 1",
+    2: "Asvini pada 2",
+    3: "Asvini pada 3",
+    4: "Asvini pada 4",
+    5: "Bharani pada 1",
+    6: "Bharani pada 2",
+    7: "Bharani pada 3",
+    8: "Bharani pada 4",
+    9: "Krittika pada 1",
+    10: "Krittika pada 2",
+    11: "Krittika pada 3",
+    12: "Krittika pada 4",
+    13: "Rohini pada 1",
+    14: "Rohini pada 2",
+    15: "Rohini pada 3",
+    16: "Rohini pada 4",
+    17: "Mrigashira pada 1",
+    18: "Mrigashira pada 2",
+    19: "Mrigashira pada 3",
+    20: "Mrigashira pada 4",
+    21: "Ardra pada 1",
+    22: "Ardra pada 2",
+    23: "Ardra pada 3",
+    24: "Ardra pada 4",
+    25: "Punarvasu pada 1",
+    26: "Punarvasu pada 2",
+    27: "Punarvasu pada 3",
+    28: "Punarvasu pada 4",
+    29: "Pushya pada 1",
+    30: "Pushya pada 2",
+    31: "Pushya pada 3",
+    32: "Pushya pada 4",
+    33: "Ashlesha pada 1",
+    34: "Ashlesha pada 2",
+    35: "Ashlesha pada 3",
+    36: "Ashlesha pada 4",
+    37: "Magha pada 1",
+    38: "Magha pada 2",
+    39: "Magha pada 3",
+    40: "Magha pada 4",
+    41: "Purva Phalguni pada 1",
+    42: "Purva Phalguni pada 2",
+    43: "Purva Phalguni pada 3",
+    44: "Purva Phalguni pada 4",
+    45: "Uttara Phalguni pada 1",
+    46: "Uttara Phalguni pada 2",
+    47: "Uttara Phalguni pada 3",
+    48: "Uttara Phalguni pada 4",
+    49: "Hasta pada 1",
+    50: "Hasta pada 2",
+    51: "Hasta pada 3",
+    52: "Hasta pada 4",
+    53: "Chitra pada 1",
+    54: "Chitra pada 2",
+    55: "Chitra pada 3",
+    56: "Chitra pada 4",
+    57: "Swati pada 1",
+    58: "Swati pada 2",
+    59: "Swati pada 3",
+    60: "Swati pada 4",
+    61: "Vishakha pada 1",
+    62: "Vishakha pada 2",
+    63: "Vishakha pada 3",
+    64: "Vishakha pada 4",
+    65: "Anuradha pada 1",
+    66: "Anuradha pada 2",
+    67: "Anuradha pada 3",
+    68: "Anuradha pada 4",
+    69: "Jyeshtha pada 1",
+    70: "Jyeshtha pada 2",
+    71: "Jyeshtha pada 3",
+    72: "Jyeshtha pada 4",
+    73: "Mula pada 1",
+    74: "Mula pada 2",
+    75: "Mula pada 3",
+    76: "Mula pada 4",
+    77: "Purva Ashadha pada 1",
+    78: "Purva Ashadha pada 2",
+    79: "Purva Ashadha pada 3",
+    80: "Purva Ashadha pada 4",
+    81: "Uttara Ashadha pada 1",
+    82: "Uttara Ashadha pada 2",
+    83: "Uttara Ashadha pada 3",
+    84: "Uttara Ashadha pada 4",
+    85: "Shravana pada 1",
+    86: "Shravana pada 2",
+    87: "Shravana pada 3",
+    88: "Shravana pada 4",
+    89: "Dhanishta pada 1",
+    90: "Dhanishta pada 2",
+    91: "Dhanishta pada 3",
+    92: "Dhanishta pada 4",
+    93: "Shatabhisha pada 1",
+    94: "Shatabhisha pada 2",
+    95: "Shatabhisha pada 3",
+    96: "Shatabhisha pada 4",
+    97: "Purva Bhadrapada pada 1",
+    98: "Purva Bhadrapada pada 2",
+    99: "Purva Bhadrapada pada 3",
+    100: "Purva Bhadrapada pada 4",
+    101: "Uttara Bhadrapada pada 1",
+    102: "Uttara Bhadrapada pada 2",
+    103: "Uttara Bhadrapada pada 3",
+    104: "Uttara Bhadrapada pada 4",
+    105: "Revati pada 1",
+    106: "Revati pada 2",
+    107: "Revati pada 3",
+    108: "Revati pada 4",
+    109: "Asvini pada 1",
+    110: "Asvini pada 2",
+    111: "Asvini pada 3",
+    112: "Asvini pada 4",
+    113: "Bharani pada 1",
+}
+
+def nak_convert_to_12_hour_format(hour, minute, second):
+    if hour >= 24:
+        return "afterwards"
+    
+    period = "AM"
+    if hour >= 12:
+        period = "PM"
+    hour = hour % 12
+    if hour == 0:
+        hour = 12
+    
+    return f"{hour:02}:{minute:02} {period}" #:{second:02}
+def transform_nakshatra_pada_output(output):
+    transformed_output = []
+    for i in range(0, len(output), 2):
+        pada_number = output[i]
+        time_24 = output[i + 1]
+        nakshatra_name = pada_names.get(pada_number, f"Unknown pada {pada_number}")
+        hour, minute, second = time_24
+        time_12 = nak_convert_to_12_hour_format(hour, minute,second)
+        transformed_output.append((nakshatra_name, time_12))
+    return transformed_output
+
+def mlunar_longitude(jd):
+  """Lunar longitude at given instant (julian day) jd"""
+  data = swe.calc_ut(jd, swe.MOON, flag = swe.FLG_SWIEPH)
+  return data[0] 
+def ssnakshatra_pada(jd, place):
+  " 108 pada associations "
+  swe.set_sid_mode(swe.SIDM_LAHIRI)
+  # 1. Find time of sunrise
+  lat, lon, tz = place
+  rise = sunrise(jd, place)[0] - tz / 24.  # Sunrise at UT 00:00
+
+  # Swiss Ephemeris always gives Sayana. So subtract ayanamsa to get Nirayana
+  offsets = [0.0, 0.25, 0.5, 0.75, 1.0]
+  longitudes = [ (mlunar_longitude(rise + t)[0] - swe.get_ayanamsa_ut(rise)) % 360 for t in offsets]
+  print(longitudes)
+ 
+  # There are 108 Nakshatras pada  spanning 360 degrees
+  pada = ceil(longitudes[0] * 108 / 360)
+
+  # 3. Find end time by 5-point inverse Lagrange interpolation
+  y = unwrap_angles(longitudes)
+  x = offsets
+  approx_end = inverse_lagrange(x, y, pada * 360 / 108)
+  print(approx_end,"approx end")
+  ends = (rise - jd + approx_end) * 24 + tz
+  print(ends,"ends")
+  answer = [int(pada), to_dms(ends)]
+
+  # 4. Check for skipped nakshatra
+  print(pada," current pada")
+  nak_tmrw = ceil(longitudes[-1] * 108 / 360)
   
-#     assendent.append([planet,constellation+1])
+  print(nak_tmrw,"nak tmro")
+  count=pada #107
+
+  isSkipped = (nak_tmrw - pada) % 108 > 1
   
-#   mapping = {
-#     0: "Su",
-#     1: "Mo",
-#     4: "Ma",
-#     2: "Me",
-#     5: "Ju",
-#     3: "Ve",
-#     6: "Sa",
-#     10: "Ra",
-#     9: "Ke",
-#     11: "Asc"
-# }
+  # while nak_tmrw > count:    
+  for i in range (3):
+      leap_nak = count+1
+      count+=1
+      approx_end = inverse_lagrange(offsets, longitudes, leap_nak * 360 / 108)
+      ends = (rise - jd + approx_end) * 24 + tz
+      print(ends,"ends")
+      answer += [int(leap_nak), to_dms(ends)]
 
-#   #assendent = [[11, 1], [0, 1], [1, 9], [4, 12], [2, 12], [5, 1], [3, 1], [6, 11], [10, 12], [9, 6]]
-
-#   for inner_list in assendent:
-#       if inner_list[0] in mapping:
-#           inner_list[0] = mapping[inner_list[0]]
-          
-#   data=assendent
-#   values = {
-#       "planet1": "",
-#       "planet2": "",
-#       "planet3": "",
-#       "planet4": "",
-#       "planet5": "",
-#       "planet6": "",
-#       "planet7": "",
-#       "planet8": "",
-#       "planet9": "",
-#       "planet10": "",
-#       "planet11": "",
-#       "planet12": "",
-#   }
-
-#   for item in data:
-#       planet_number = item[1]
-#       planet_key = "planet" + str(planet_number)
-#       if planet_key in values:
-#           if values[planet_key]:
-#               values[planet_key] += "," +str( item[0])
-#           else:
-#               values[planet_key] = str( item[0])
+  # return answer
+  data=transform_nakshatra_pada_output(answer)
+  nak_1, nak_value_1 = data[0]
+  nak_2, nak_value_2 = data[1]
+  nak_3, nak_value_3 = data[2]
+  nak_4, nak_value_4 = data[3]
+  # print(nak_1,nak_value_1,nak_2,nak_value_2,nak_3,nak_value_3,nak_4,nak_value_4)
+  return nak_1,nak_value_1,nak_2,nak_value_2,nak_3,nak_value_3,nak_4,nak_value_4
 
 
+karana_names = {
+    1: "Kimstughna", 2: "Bava", 3: "Balava", 4: "Kaulava", 5: "Taitila",
+    6: "Gara", 7: "Vanija", 8: "Vishti", 9: "Bava", 10: "Balava",
+    11: "Kaulava", 12: "Taitila", 13: "Gara", 14: "Vanija", 15: "Vishti",
+    16: "Bava", 17: "Balava", 18: "Kaulava", 19: "Taitila", 20: "Gara",
+    21: "Vanija", 22: "Vishti", 23: "Bava", 24: "Balava", 25: "Kaulava",
+    26: "Taitila", 27: "Gara", 28: "Vanija", 29: "Vishti", 30: "Bava",
+    31: "Balava", 32: "Kaulava", 33: "Taitila", 34: "Gara", 35: "Vanija",
+    36: "Vishti", 37: "Bava", 38: "Balava", 39: "Kaulava", 40: "Taitila",
+    41: "Gara", 42: "Vanija", 43: "Vishti", 44: "Bava", 45: "Balava",
+    46: "Kaulava", 47: "Taitila", 48: "Gara", 49: "Vanija", 50: "Vishti",
+    51: "Bava", 52: "Balava", 53: "Kaulava", 54: "Taitila", 55: "Gara",
+    56: "Vanija", 57: "Vishti", 58: "Bava", 59: "Balava", 60: "Kaulava",
+    61: "Kimstughna", 62: "Bava", 63: "Balava", 64: "Kaulava", 65: "Taitila",
+}
 
-#   dwg = svgwrite.Drawing(size=(350, 350))
+def karana_convert_to_12_hour_format(hour, minute, second):
+    if hour >= 24:
+        return "afterwards"
+    
+    period = "AM"
+    if hour >= 12:
+        period = "PM"
+    hour = hour % 12
+    if hour == 0:
+        hour = 12
+    
+    return f"{hour:02}:{minute:02} {period}" #:{second:02}
 
-#   # Create a rectangle
-#   dwg.add(dwg.rect(insert=(0, 0), size=(350, 350), fill="#FFFEC9", stroke="#FFC000", stroke_width=4))
+def transform_karana_output(output):
+    transformed_output = []
+    for i in range(0, len(output), 2):
+        karana_number = output[i]
+        time_24 = output[i + 1]
+        karana_name = karana_names.get(karana_number, f"Unknown karana {karana_number}")
+        hour, minute, second = time_24
+        time_12 = karana_convert_to_12_hour_format(hour, minute, second)
+        transformed_output.append((karana_name, time_12))
+    return transformed_output
 
-#   # Add lines
-#   dwg.add(dwg.line(start=(0, 0), end=(350, 350), stroke="#FFC000", stroke_width=2))
-#   dwg.add(dwg.line(start=(350, 0), end=(0, 350), stroke="#FFC000", stroke_width=2))
-#   dwg.add(dwg.line(start=(0, 175), end=(175, 0), stroke="#FFC000", stroke_width=2))
-#   dwg.add(dwg.line(start=(175, 350), end=(350, 175), stroke="#FFC000", stroke_width=2))
-#   dwg.add(dwg.line(start=(175, 0), end=(350, 175), stroke="#FFC000", stroke_width=2))
-#   dwg.add(dwg.line(start=(0, 175), end=(175, 350), stroke="#FFC000", stroke_width=2))
 
-#     # Add text elements
-#   text_elements = [
-#       ("1", (173, 165)),
-#       (values.get("planet1", ""), (173, 87.5)),
-#       ("2", (86.5, 78.5)),
-#       (values.get("planet2", ""), (85.5, 31.818181818182)),
-#       ("3", (69.5, 93.5)),
-#       (values.get("planet3", ""), (31.818181818182, 93.5)),
-#       ("4", (157, 181)),
-#       (values.get("planet4", ""), (85.5, 175)),
-#       ("5", (69.5, 268.5)),
-#       (values.get("planet5", ""), (31.818181818182, 268.5)),
-#       ("6", (86.5, 282.5)),
-#       (values.get("planet6", ""), (85.5, 338)),
-#       ("7", (175, 197)),
-#       (values.get("planet7", ""), (175, 268.5)),
-#       ("8", (260.5, 282.5)),
-#       (values.get("planet8", ""), (262.5, 338)),
-#       ("9", (278.5, 268.5)),
-#       (values.get("planet9", ""), (318.18181818182, 268.5)),
-#       ("10", (190, 181)),
-#       (values.get("planet10", ""), (262.5, 175)),
-#       ("11", (276.5, 93.5)),
-#       (values.get("planet11", ""), (318.18181818182, 93.5)),
-#       ("12", (260.5, 78.5)),
-#       (values.get("planet12", ""), (262.5, 31.818181818182))
-#   ]
 
-#   for text, position in text_elements:
-#       dwg.add(dwg.text(text, insert=position, font_size=15, fill="red", stroke="none", text_anchor="middle"))
-#       print(dwg.tostring())
-#   return dwg.tostring()
+def sskarana(jd, place):
+  """Returns the karana and their ending times. (from 1 to 60)"""
+  # 1. Find time of sunrise
+  tz = place.timezone
+  rise = sunrise(jd, place)[0]- tz / 24
+
+  # 2. Find karana at this JDN
+  solar_long = solar_longitude(rise)
+  lunar_long = lunar_longitude(rise)
+  # print(solar_long,"gap",lunar_long)
+  moon_phase = (lunar_long - solar_long) % 360
+  today = ceil(moon_phase / 6)
+  print(today,"today")
+  degrees_left = today * 6 - moon_phase
+  print(degrees_left,"degree left")
+
+   # 3. Compute longitudinal differences at intervals of 0.25 days from sunrise
+  offsets = [0.25, 0.5, 0.75, 1.0]
+  lunar_long_diff = [ (lunar_longitude(rise + t) - lunar_longitude(rise)) % 360 for t in offsets ]
+  solar_long_diff = [ (solar_longitude(rise + t) - solar_longitude(rise)) % 360 for t in offsets ]
+  relative_motion = [ moon - sun for (moon, sun) in zip(lunar_long_diff, solar_long_diff) ]
+
+  # 4. Find end time by 4-point inverse Lagrange interpolation
+  y = relative_motion
+  x = offsets
+  # compute fraction of day (after sunrise) needed to traverse 'degrees_left'
+  approx_end = inverse_lagrange(x, y, degrees_left)
+  ends = (rise + approx_end -jd) * 24 + tz
+  answer = [int(today), to_dms(ends)]
+  print(answer)
+
+  
+  # 5. Check for skipped tithi
+  moon_phase_tmrw = lunar_phase(rise + 1)
+  tomorrow = ceil(moon_phase_tmrw / 6)
+  isSkipped = (tomorrow - today) % 60 > 1
+  print(isSkipped,"skipped")
+
+  if isSkipped:
+    # interpolate again with same (x,y)
+    leap_tithi = today +1
+    degrees_left = leap_tithi * 6 - moon_phase
+    approx_end = inverse_lagrange(x, y, degrees_left)
+    print(approx_end,"aprox end skip")
+    ends = (rise + approx_end -jd) * 24 + place.timezone
+    print(ends,"ends skipped")
+    answer += [int(leap_tithi), to_dms(ends)]
+    print(answer,"ans skipped")
+    isskipped=answer[3][0]<24
+    if isskipped:
+        leap_tithi = today +2
+        degrees_left = leap_tithi * 6 - moon_phase
+        approx_end = inverse_lagrange(x, y, degrees_left)
+        print(approx_end,"aprox end skip")
+        ends = (rise + approx_end -jd) * 24 + place.timezone
+        print(ends,"ends skipped")
+        answer += [int(leap_tithi), to_dms(ends)]
+        print(answer,"ans skipped")
+  # return answer
+  karana3, karana_3 ="",""
+  data=transform_karana_output(answer)
+  karana_1, karana_value_1 = data[0]
+  karana2, karana_2 = data[1]
+  print(len(data),"len")
+  if len(data)>2:
+
+    karana3, karana_3 = data[2]
+  return  karana_1, karana_value_1 , karana2, karana_2 ,karana3, karana_3 
+ 
+ 
 
 # Function to validate API key
 def validate_api_key(api_key):
@@ -2124,26 +2333,30 @@ def sunmoon():
     moonsign_result=moonsign(year,month,day,time)
     sunsign_result=sunsign(year,month,day,time)
     #thithi_number, thithi_name, thithi_end_time, tag
+    karana_1, karana_value_1 , karana_2, karana_value_2 ,karana_3,karana_value_3=sskarana(jd,place)
 
     thithi_number, thithi_name, thithi_end_time, tag=tithiname(jd,place)
     # nak_number, nak_name, nak_end_time, nak_tag
 
-    nak_number, nak_name, nak_end_time, nak_tag=snakshatra(jd,place)
-    nakshatra_pada=snakshatra_pada(jd,place)
+    nak_number, nak_name, nak_end_time, nak_tag,next_nakshatra=snakshatra(jd,place)
+    # nakshatra_pada=snakshatra_pada(jd,place)
     yoga_tag=yoga(jd,place)
     # yoga1, yoga1time, yoga2, 
-    yoga1, yoga1time, yoga2, yoga2time=syoga(jd,place)
+    yoga1, yoga1time, yoga2, yoga2time,next_yoga=syoga(jd,place)
     brahma_muhurta_start_ampm, brahma_muhurta_end_ampm , pratah_sandhya_start_ampm, pratah_sandhya_end_ampm, sayanha_sandhya_start_ampm, sayanha_sandhya_end_ampm=calculate_brahma_muhurta(jd,place)
     ayana=calculate_ayana(jd)
     vikram_samvat,kali_year=calculate_vikram_samvat_year(jd,place,year)
     karana1,karana2=skarana(jd,place)
     vaaram=varam(jd,place)
+    vedicmasanum,vedicmasaname,vedicleapmonth=masaname(jd,place)
+    nak_1,nak_value_1,nak_2,nak_value_2,nak_3,nak_value_3,nak_4,nak_value_4=ssnakshatra_pada(jd,place)
     sun_chart=sunrise_ascendent(jd,place)
     # print(sun_chart)
     
 
     
     result={
+       'jd':jd,
         'year':year,
         'month':month,
         'day':day,
@@ -2163,18 +2376,14 @@ def sunmoon():
         'gulika_end':gulika_end,
         'amrit_start':amrit_start,
         'amrit_end':amrit_end,
-
         'dur_start_1':dur_start_1,
         'dur_start_2':dur_start_2,
         'dur_end_1':dur_end_1,
         'dur_start_2':dur_end_2,
-
         'disha_shool_primary':primary_disha_shool,
         'disha_shool_secondary':secondary_disha_shool,
-
         'moonsign':moonsign_result,
         'sunsign':sunsign_result,
-        # 'tithi':tithi_result,
         'thithi_number':thithi_number,
         'thithiname':thithi_name,
         'thithiend_time':thithi_end_time,
@@ -2183,16 +2392,13 @@ def sunmoon():
         'nakshatra_name':nak_name,
         'nakshatra_end_time':nak_end_time,
         'nakshatra_tag':nak_tag,
-        'nakshatra_pada':nakshatra_pada,
+        "next_nakshatra":next_nakshatra,
         'yoga_tag':yoga_tag,
         'yoga1':yoga1,
         'yoga2':yoga2,
         'yoga1time':yoga1time,
         'yoga2time':yoga2time,
-        # 'yoga_name':yoga_name,
-        # 'yoga_end_time':yoga_end_time,
-        # "yoga_number":yoga_number,
-        # 'yoga_tag':yoga_tag,
+        "next_yoga":next_yoga,
         'brahma_start':brahma_muhurta_start_ampm,
         'brama_end':brahma_muhurta_end_ampm,
         'pratah_start':pratah_sandhya_start_ampm,
@@ -2205,12 +2411,219 @@ def sunmoon():
         'karana1':karana1,
         "karana2":karana2,
         "vaaram":vaaram,
-        "sunrise_chart":sun_chart
+        "vedicmasanum":vedicmasanum,
+        "vedicmasaname":vedicmasaname,
+        "vedicleapmonth":vedicleapmonth,
+        "nak_pada_1":nak_1,
+        "nak_pada_value_1":nak_value_1,
+        "nak_pada_2":nak_2,
+        "nak_pada_value_2":nak_value_2,
+        "nak_pada_3":nak_3,
+        "nak_pada_value_3":nak_value_3,
+        "nak_pada_4":nak_4,
+        "nak_pada_value_4":nak_value_4,
+        "sunrise_chart":sun_chart,
+        "karana_1":karana_1,
+        "karana_value_1":karana_value_1,
+        "karana_2":karana_2,
+        "karana_value_2":karana_value_2,
+        "karana_3":karana_3,
+        "karana_value_3":karana_value_3
           
         
     }
     #return result 
     return render_template('results.html', **result)
+
+
+@app.route('/panchang', methods=['GET'])
+def sun():
+    api_key = request.headers.get('api-key')  # Accessing API key from headers
+    if not api_key:
+        return jsonify({'error': 'Unauthorized access. API key missing.'}), 401
+
+    year = int(request.args.get('year'))
+    month = int(request.args.get('month'))
+    day = int(request.args.get('day'))
+    lat = float(request.args.get('latitude'))
+    lon = float(request.args.get('longitude'))
+    tz = float(request.args.get('timezone'))
+    time=str(request.args.get('time'))
+    date = Date(year, month, day)
+    place = Place(lat, lon, tz)
+
+
+
+
+    # Validate API key
+    if not validate_api_key(api_key):
+        return jsonify({'error': 'Unauthorized access. Invalid API key.'}), 401
+
+
+    jd=gregorian_to_jd(date)
+    sunrise_result=ssunrise(jd,place)
+    sunset_result=ssunset(jd,place)
+    moonrise_result=smoonrise(jd,place)
+    moonset_result=smoonset(jd,place)
+    day_duration_result=day_duration(jd,place)
+    ritu_result=ritu1(jd,place)
+    abhihth_start,abjijeeth_end=abhijit_muhurta(jd,place)
+    rahu_kalam_start,rahukalam_end=trikalam(jd,place,'rahu')
+    yamakandam_start,yamakandam_end=trikalam(jd,place,'yamaganda')
+    gulika_start,gulika_end=trikalam(jd,place,'gulika')
+    amrit_start,amrit_end=trikalam(jd,place,'amrit')
+    dur_start_1, dur_start_2, dur_end_1, dur_end_2=sdurmuhurtam(jd,place)
+    primary_disha_shool, secondary_disha_shool = disha_shool(jd)
+    moonsign_result=moonsign(year,month,day,time)
+    sunsign_result=sunsign(year,month,day,time)
+    karana_1, karana_value_1 , karana_2, karana_value_2 ,karana_3,karana_value_3=sskarana(jd,place)
+    thithi_number, thithi_name, thithi_end_time, tag=tithiname(jd,place)
+    nak_number, nak_name, nak_end_time, nak_tag,next_nakshatra=snakshatra(jd,place)
+    yoga_tag=yoga(jd,place)
+    yoga1, yoga1time, yoga2, yoga2time,next_yoga=syoga(jd,place)
+    brahma_muhurta_start_ampm, brahma_muhurta_end_ampm , pratah_sandhya_start_ampm, pratah_sandhya_end_ampm, sayanha_sandhya_start_ampm, sayanha_sandhya_end_ampm=calculate_brahma_muhurta(jd,place)
+    ayana=calculate_ayana(jd)
+    vikram_samvat,kali_year=calculate_vikram_samvat_year(jd,place,year)
+    karana1,karana2=skarana(jd,place)
+    vaaram=varam(jd,place)
+    vedicmasanum,vedicmasaname,vedicleapmonth=masaname(jd,place)
+    nak_1,nak_value_1,nak_2,nak_value_2,nak_3,nak_value_3,nak_4,nak_value_4=ssnakshatra_pada(jd,place)
+    sun_chart=sunrise_ascendent(jd,place)
+    # print(sun_chart)
+    
+
+    
+    result={
+       'jd':jd,
+        'year':year,
+        'month':month,
+        'day':day,
+        'sunrise':sunrise_result,
+        'sunset':sunset_result,
+        'moonrise':moonrise_result,
+        'moonset':moonset_result,
+        'day_duration':day_duration_result,
+        'ritu':ritu_result,
+        'abhijit_muhurta_start':abhihth_start,
+        'abhijit_murtham_end':abjijeeth_end,
+        'rahukalam_start':rahu_kalam_start,
+        'rahukalam_end':rahukalam_end,
+        'yamakandam_start':yamakandam_start,
+        'yamakandam_end':yamakandam_end,
+        'gulika_start':gulika_start,
+        'gulika_end':gulika_end,
+        'amrit_start':amrit_start,
+        'amrit_end':amrit_end,
+        'dur_start_1':dur_start_1,
+        'dur_start_2':dur_start_2,
+        'dur_end_1':dur_end_1,
+        'dur_start_2':dur_end_2,
+        'disha_shool_primary':primary_disha_shool,
+        'disha_shool_secondary':secondary_disha_shool,
+        'moonsign':moonsign_result,
+        'sunsign':sunsign_result,
+        'thithi_number':thithi_number,
+        'thithiname':thithi_name,
+        'thithiend_time':thithi_end_time,
+        'thithi_tag':tag,
+        'nakshatra_number':nak_number,
+        'nakshatra_name':nak_name,
+        'nakshatra_end_time':nak_end_time,
+        'nakshatra_tag':nak_tag,
+        "next_nakshatra":next_nakshatra,
+        'yoga_tag':yoga_tag,
+        'yoga1':yoga1,
+        'yoga2':yoga2,
+        'yoga1time':yoga1time,
+        'yoga2time':yoga2time,
+        "next_yoga":next_yoga,
+        'brahma_start':brahma_muhurta_start_ampm,
+        'brama_end':brahma_muhurta_end_ampm,
+        'pratah_start':pratah_sandhya_start_ampm,
+        "pratah_end":pratah_sandhya_end_ampm,
+        "sayanha_start":sayanha_sandhya_start_ampm,
+        "sayanha_end":sayanha_sandhya_end_ampm,
+        "ayana":ayana,
+        'vikram_samvat':vikram_samvat,
+        'kali_year':kali_year,
+        'karana1':karana1,
+        "karana2":karana2,
+        "vaaram":vaaram,
+        "vedicmasanum":vedicmasanum,
+        "vedicmasaname":vedicmasaname,
+        "vedicleapmonth":vedicleapmonth,
+        "nak_pada_1":nak_1,
+        "nak_pada_value_1":nak_value_1,
+        "nak_pada_2":nak_2,
+        "nak_pada_value_2":nak_value_2,
+        "nak_pada_3":nak_3,
+        "nak_pada_value_3":nak_value_3,
+        "nak_pada_4":nak_4,
+        "nak_pada_value_4":nak_value_4,
+        "sunrise_chart":sun_chart,
+        "karana_1":karana_1,
+        "karana_value_1":karana_value_1,
+        "karana_2":karana_2,
+        "karana_value_2":karana_value_2,
+        "karana_3":karana_3,
+        "karana_value_3":karana_value_3
+          
+        
+    }
+    return result 
+   # return render_template('results.html', **result)
+
+
+
+
+@app.route('/calendar', methods=['GET'])
+def calendar():
+    api_key = request.headers.get('api-key')  # Accessing API key from headers
+    if not api_key:
+        return jsonify({'error': 'Unauthorized access. API key missing.'}), 401
+
+    year = int(request.args.get('year'))
+    month = int(request.args.get('month'))
+    lat = float(request.args.get('latitude'))
+    lon = float(request.args.get('longitude'))
+    tz = float(request.args.get('timezone'))
+
+    # Validate API key
+    if not validate_api_key(api_key):
+        return jsonify({'error': 'Unauthorized access. Invalid API key.'}), 401
+
+    results = []
+    days_in_month = (datetime(year, month + 1, 1) - timedelta(days=1)).day if month < 12 else 31
+    print(days_in_month)
+    place = Place(lat, lon, tz)
+
+    for day in range(1, days_in_month + 1):
+        date = Date(year, month, day)
+        jd = gregorian_to_jd(date)
+        nak_number, nak_name, nak_end_time, nak_tag,next_nakshatra= snakshatra(jd, place)
+        thithi_number, thithi_name, thithi_end_time, tag=tithiname(jd,place)
+        weekday = datetime(year, month, day).strftime('%A')
+
+        day_info = {
+            'date': f'{year}-{month:02}-{day:02}',
+            'weekday': weekday,
+            'sunrise': ssunrise(jd, place),
+            'sunset': ssunset(jd, place),
+            'thithi_number':thithi_number,
+            'thithi_name':thithi_name,
+            'thithi_end_time':thithi_end_time,
+            'thithi_tag':tag,
+            'nak_number': nak_number,
+            'nak_name': nak_name,
+            'nak_end_time': nak_end_time,
+            'nak_tag': nak_tag,
+            "next_nakshatra":next_nakshatra,   
+            'moon_sign': moonsign(year,month,day,time="00:00:00"),
+        }
+        print(day_info)
+        results.append(day_info)
+
+    return jsonify(results), 200
     
 if __name__ == "__main__":
      app.run(debug=True)

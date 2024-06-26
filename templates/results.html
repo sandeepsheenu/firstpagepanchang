@@ -10,7 +10,7 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: Arial, sans-serif;
+            font-family: Gadugi, sans-serif;
         }
 
         body {
@@ -21,10 +21,12 @@
             display: flex;
             flex-wrap: wrap;
             justify-content: space-around;
-            background-color: #a7dcffa6;
+            background-color: #6dc3fca6;
             text-align: center;
             color: #000000;
             border-radius: 15px;
+          
+
         }
 
         .col {
@@ -36,6 +38,11 @@
             flex-basis: 15%;
             margin: 10px;
             padding-top: 20px;
+        }
+
+        .col h2,
+        h3 {
+            font-size: 20px;
         }
 
         .img {
@@ -51,8 +58,8 @@
         }
 
         .box {
-            background-color: #ffc565;
-            color: #781e00;
+            background-color: #ffcb77;
+            color: #ff4000;
             padding: 20px;
             border-radius: 10px;
             box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.678);
@@ -60,12 +67,17 @@
             gap: 50px;
             grid-column: span 2 !important;
             line-height: 1.5;
-            align-content: center;
-            color: #000000;
+            color: #196900;
+            font-weight: bold;
+            font-size: 20px;
         }
 
         .box h1 {
             font-size: 80px;
+        }
+
+        .box h3 {
+            vertical-align: auto;
         }
 
         .day-duration {
@@ -76,7 +88,8 @@
 
         h2,
         h3 {
-            color: #97400d;
+            font-size: 30px;
+            color: #ff4000;
         }
 
         ul {
@@ -87,7 +100,7 @@
         @media (max-width: 450px) {
             .row {
                 display: grid;
-                grid-template-columns: repeat(2, 1fr);
+
                 gap: 1px;
             }
 
@@ -105,14 +118,13 @@
             }
         }
 
-   
+
         .cls-1 {
             fill: #ffee00;
             stroke: #ee150d;
             stroke-miterlimit: 10;
             stroke-width: 1.92px;
         }
-                 
     </style>
 </head>
 
@@ -146,9 +158,9 @@
                 <polyline class="cls-1" points="9.13 19.67 12 16.79 14.88 19.67" />
                 <line class="cls-1" x1="12" y1="23.5" x2="12" y2="17.75" />
             </svg>
-            <p>sunrise</p>
+            <h2>sunrise</h2>
             <h3>{{sunrise}}</h3>
-            
+
         </div>
         <div class="col">
             <svg width="40px" height="40px" viewBox="0 0 24 24" id="Layer_1" data-name="Layer 1"
@@ -178,14 +190,14 @@
                 <polyline class="cls-1" points="14.88 18.67 12 21.54 9.13 18.67" />
                 <line class="cls-1" x1="12" y1="14.83" x2="12" y2="20.58" />
             </svg>
-            <p>sunset</p>
+            <h2>sunset</h2>
             <h3>{{sunset}}</h3>
-            
+
         </div>
         <div class="col1">
             <h3>Day Duration</h3>
             <h3>{{day_duration}}</h3>
-            <!-- <p>Hemant Ritu</p> -->
+
         </div>
         <div class="col">
             <svg fill="	#000000" width="40px" height="40px" viewBox="0 0 32 32" id="icon"
@@ -197,49 +209,67 @@
                     d="M16,26H14a9.9268,9.9268,0,0,1,3.7539-7.804A7.89,7.89,0,0,0,16,18a8.0092,8.0092,0,0,0-8,8H6A10.0113,10.0113,0,0,1,16,16a9.8923,9.8923,0,0,1,4.4458,1.0515,1,1,0,0,1,0,1.79A7.9567,7.9567,0,0,0,16,26Z" />
                 <polygon  points="16 2 11 7 12.41 8.41 15 5.83 15 6 15 14 17 14 17 6 17 5.83 19.59 8.41 21 7 16 2" />
             </svg>
-            <p>moonrise</p>
-            <h3>{{moonrise}}</h3>
-           
+            <h2>moonrise</h2>
+            <h2>{{moonrise}}</h2>
+
         </div>
         <div class="col">
             <svg fill="	#000000" width="40px" height="40px" viewBox="0 0 32 32" id="icon"
-                xmlns="http://www.w3.org/2000/svg">
-                <!-- <defs>
-                    <style>
-                        .cls-1 {
-                            fill: none;
-                        }
-                    </style>
-                </defs> -->
-                <rect x="2" y="28" width="28" height="2" />
-                <path d="M26,26H24a7.987,7.987,0,0,0-2.0371-5.3335l1.49-1.334A9.9835,9.9835,0,0,1,26,26Z" />
-                <path
-                    d="M16,26H14a9.9268,9.9268,0,0,1,3.7539-7.804A7.89,7.89,0,0,0,16,18a8.0092,8.0092,0,0,0-8,8H6A10.0113,10.0113,0,0,1,16,16a9.8923,9.8923,0,0,1,4.4458,1.0515,1,1,0,0,1,0,1.79A7.9567,7.9567,0,0,0,16,26Z" />
-                <polygon points="16 14 11 9 12.41 7.59 15 10.17 15 10 15 2 17 2 17 10 17 10.17 19.59 7.59 21 9 16 14" />
-            </svg>
-            
-            <p>moonset</p>
-            <h3>{{moonset}}</h3>
+            xmlns="http://www.w3.org/2000/svg">
+            <!-- <defs>
+                <style>
+                    .cls-1 {
+                        fill: none;
+                    }
+                </style>
+            </defs> -->
+            <rect x="2" y="28" width="28" height="2" />
+            <path d="M26,26H24a7.987,7.987,0,0,0-2.0371-5.3335l1.49-1.334A9.9835,9.9835,0,0,1,26,26Z" />
+            <path
+                d="M16,26H14a9.9268,9.9268,0,0,1,3.7539-7.804A7.89,7.89,0,0,0,16,18a8.0092,8.0092,0,0,0-8,8H6A10.0113,10.0113,0,0,1,16,16a9.8923,9.8923,0,0,1,4.4458,1.0515,1,1,0,0,1,0,1.79A7.9567,7.9567,0,0,0,16,26Z" />
+            <polygon points="16 14 11 9 12.41 7.59 15 10.17 15 10 15 2 17 2 17 10 17 10.17 19.59 7.59 21 9 16 14" />
+        </svg>
+            <h2>moonset</h2>
+            <h2>{{moonset}}</h2>
         </div>
     </div>
+    
     <div class="container">
 
         <div class="box day-duration">
             <h2>{{thithiname}}</h2>
-            <!-- <p>Jan 5, 2024</p> -->
             <p> {{day}}-{{month}}-{{year}}</p>
+            <p>julian Day :{{jd}}</p>
             <h1>{{thithi_number}}</h1>
-            <p>MoonSign-{{moonsign}}</p>
-            <p>{{vaaram}}</p>
-             <p>Ritu:{{ritu}}</p>
-            
-            <!-- <p>Margashirsha</p>
-            <p>Pausha</p>
-            <p>Navami – 11:46 PM</p>
-            <p>Dashami</p>
-            <p>Saphala Ekadashi</p> -->
+            <ul>
+                <li>MoonSign : {{moonsign}}</li>
+                <li>Vara: {{vaaram}}</li>
+                <li>Ritu: {{ritu}}</li>
+                <li>Vedic Month: {{vedicmasaname}} </li>
+                <li>Nakshatra: {{nakshatra_name}} upto {{nakshatra_end_time}} || {{next_nakshatra}}</li>
+                
+
+                <li>Yoga: {{yoga1}} upto {{yoga1time}} || {{next_yoga}}</li>
+                <!-- <li>{{yoga2}} upto {{yoga2time}}</li> -->
+
+
+
+
+
+
+
+                <li>Karanas: {{karana_1}} upto {{karana_value_1}} ||{{karana_2}}  {{karana_value_2}}</li>
+               
+                <li>{{karana_3}}  {{karana_value_3}}</li>
+                    
+                <li>Disha Shool: {{disha_shool_primary}} , {{disha_shool_secondary}}</li>
+            </ul>
         </div>
-        <div class="box todays-panchanga">
+        <div class="box todays-kundli">
+            <h3>Lagna Kundli at Sun Rise</h3>
+            {{sunrise_chart | safe}}
+        </div>
+        <!-- <div class="box todays-panchanga">
             <h3>Panchanga</h3>
             <ul>
                 <li>Vasara: {{vaaram}}</li>
@@ -248,12 +278,13 @@
                 <li>Karana: {{karana1}}, {{karana2}}</li>
                 <li>disha shool:{{disha_shool_primary}},{{disha_shool_secondary}}</li>
             </ul>
-        </div>
+        </div> -->
         <div class="box todays-karnas">
-            <h3>Sandhya MUrtha </h3>
+            <h3>Sandhya Muhurta </h3>
             <ul>
                 <li>Brahma Muhurta :{{brahma_start}} to {{brama_end}}</li>
                 <li>Pratah Sandhya :{{pratah_start}} to {{pratah_end}} </li>
+                <!-- <li>Madhyana Sandhya :{{pratah_start}} to {{pratah_end}} </li> -->
                 <li>Sayahna Sandhya :{{sayanha_start}} to {{sayanha_end}} </li>
             </ul>
         </div>
@@ -263,46 +294,22 @@
                 <li>Abhijit Muhurta: {{abhijit_muhurta_start}} to {{abhijit_murtham_end}}</li>
                 <li>Rahu Kaal: {{rahukalam_start}} to {{rahukalam_end}}</li>
                 <li>Amrit Kaal: {{amrit_start}} to {{amrit_end}}</li>
-                <!-- <li>Vajrasam: 13:38 to 15:05</li> -->
                 <li>Gulika Kalam: {{gulika_start}} to {{gulika_end}}</li>
                 <li>Dur-Muhurta: {{dur_start_1}} to {{dur_end_1}}</li>
-                <li> {{dur_start_2}}  {{dur_start_2}}</li>
+                <li> {{dur_start_2}} {{dur_start_2}}</li>
                 <li>Yamagandam :{{yamakandam_start}} to {{yamakandam_end}}</li>
             </ul>
         </div>
         <div class="box todays-nakshatras">
             <h3>Nakshatras</h3>
             <ul>
-                <li> {{nakshatra_name}} upto</li>
-                <li>{{nakshatra_end_time}} {{nakshatra_tag}}</li>
-                <!-- <li>Vishakha 4 upto 22:08</li>
-                <li>Anuradha-1 upto 04:01 Jan 08</li> -->
+                <li> {{nakshatra_name}} </li>
+                <li>{{nak_pada_1}} upto {{nak_pada_value_1}}</li>
+                <li>{{nak_pada_2}} upto {{nak_pada_value_2}}</li>
+                <li>{{nak_pada_3}} upto {{nak_pada_value_3}}</li>
+                <li>{{nak_pada_4}} upto {{nak_pada_value_4}}</li>
             </ul>
         </div>
-        <div class="box yoga-shoola">
-            <h3> Shoola</h3>
-            <ul>
-                <!-- <li>Anandadi Yog: Ushpatha</li>
-                <li>Anandadi Yog Phal: Prana Nashta, Death</li> -->
-                <li>Disha Shool: {{disha_shool_primary}}</li>
-                <li>{{disha_shool_secondary}}</li>
-            </ul>
-        </div>
-        <div class="box todays-karnas">
-            <h3>Karnas</h3>
-            <ul>
-                <li>{{karana1}}</li>
-                <li>{{karana2}}</li>
-            </ul>
-        </div>
-        <div class="box todays-yoga">
-            <h3>Yoga</h3>
-            <ul>
-                <li>{{yoga1}} upto {{yoga1time}} </li>
-                <li>{{yoga2}} upto {{yoga2time}}</li>
-            </ul>
-        </div>
-
         <div class="box todays-tithis">
             <h3>Tithis</h3>
             <ul>
@@ -314,16 +321,10 @@
             <h3>Samvat</h3>
             <ul>
                 <li>Vikram Samvat: {{vikram_samvat}}</li>
-                <!-- <li>Shaka Samvat: Shobhakrita, 1945</li> -->
                 <li>Kali Samvat: {{kali_year}}</li>
                 <li>Ayana: {{ayana}}</li>
             </ul>
         </div>
-        <div class="box todays-tithis">
-            <h3>Sun Rise Chart </h3>
-               {{sunrise_chart | safe}}
-        </div>
     </div>
 </body>
-
 </html>
